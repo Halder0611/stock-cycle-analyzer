@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Stock / Mutual Fund Analyzer</title>
+  <style>
+    body {
+      background: #0b1220;
+      color: #e5e7eb;
+      font-family: ui-monospace, monospace;
+      padding: 40px;
+      max-width: 900px;
+      margin: auto;
+    }
+    h1 { color: #38bdf8; }
+    input, select, button {
+      padding: 10px;
+      margin: 6px 0;
+      width: 100%;
+      background: #020617;
+      color: #e5e7eb;
+      border: 1px solid #1f2937;
+      border-radius: 6px;
+    }
+    button {
+      background: #38bdf8;
+      color: #020617;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    pre {
+      margin-top: 20px;
+      background: #020617;
+      padding: 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Stock / Mutual Fund Analyzer</h1>
+
+<input id="symbol" placeholder="AAPL / NALCO.NS / VFIAX" />
+
+<label>End Date</label>
+<input id="end_date" type="date" />
+
+<label>Cycles</label>
+<input id="cycles" type="number" value="5" />
+
+<label>Duration</label>
+<input id="duration_value" type="number" value="1" />
+<select id="duration_unit">
+  <option value="years">years</option>
+  <option value="months">months</option>
+  <option value="days">days</option>
+</select>
+
+<label>Asset Type</label>
+<select id="asset_type">
+  <option value="stock">Stock</option>
+  <option value="mf">Mutual Fund</option>
+</select>
+
+<button onclick="run()">Analyze</button>
+
+<pre id="output">// result will appear here</pre>
+
+<script>
+document.getElementById("end_date").value =
+  new Date().toISOString().slice(0, 10);
+
+async function run() {
+  const output = document.getElementById("output");
+  output.textContent = "Loading...";
+
+  const params = new URLSearchParams({
+    symbol: symbol.value.trim(),
+    end_date: end_date.value,
+    cycles: cycles.value,
+    duration_value: duration_value.value,
+    duration_unit: duration_unit.value,
+    asset_type: asset_type.value
+  });
+
+  try {
+    const res = await fetch("/analyze?" + params);
+    const json = await res.json();
+    output.textContent = JSON.stringify(json, null, 2);
+  } catch (err) {
+    output.textContent = "ERROR: " + err;
+  }
+}
+</script>
+
+</body>
+</html>
