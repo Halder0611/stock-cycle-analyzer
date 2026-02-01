@@ -4,11 +4,12 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 import statistics
 import yfinance as yf
+import investpy
 
 app = FastAPI(title="Stock & Mutual Fund Cycle Analyzer")
 
 
-# -------------------- UTILS --------------------
+# -------------------- UTILS 
 
 def parse_date(d: str) -> datetime:
     try:
@@ -30,13 +31,17 @@ def get_price_series(symbol: str, start: datetime, end: datetime):
     )
 
     if data is None or data.empty:
-        raise HTTPException(status_code=404, detail="No price data found")
+        raise HTTPException(status_code=404, detail=f"No price data found for {symbol}. Check symbol and date range.")
 
     close = data["Close"]
 
     # Handle weird yfinance multi-column edge case
     if hasattr(close.iloc[0], "__iter__"):
         close = close.iloc[:, 0]
+
+    # Ensure at least 2 data points
+    if len(close) < 2:
+        raise HTTPException(status_code=404, detail=f"Insufficient data for {symbol} in date range")
 
     dates = [d.strftime("%Y-%m-%d") for d in close.index]
     prices = [float(p) for p in close.values]
@@ -50,6 +55,37 @@ def get_price_series(symbol: str, start: datetime, end: datetime):
 def home():
     with open("index.html", "r", encoding="utf-8") as f:
         return f.read()
+
+
+# -------------------- SEARCH SYMBOLS --------------------
+
+@app.get("/search-symbols")
+def search_symbols(q: str):
+    """Search for stock/MF symbols matching the query"""
+    if not q or len(q) < 1:
+        return {"results": []}
+    
+    try:
+        # Search in Indian stocks (NSE)
+        results = []
+        search_term = q.lower()
+        
+        # Get all stocks from investpy
+        stocks = investpy.stocks.get_stocks(country='india')
+        
+        # Filter stocks that match the search term
+        matching = [s for s in stocks if search_term in s.lower()][:15]  # Limit to 15 results
+        
+        for stock in matching:
+            results.append({
+                "symbol": f"{stock}.NS",
+                "name": stock
+            })
+        
+        return {"results": results}
+    
+    except Exception as e:
+        return {"results": [], "error": str(e)}
 
 
 # -------------------- ANALYZE --------------------
