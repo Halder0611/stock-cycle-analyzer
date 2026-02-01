@@ -14,8 +14,9 @@
 
 <body class="bg-slate-950 text-slate-200 min-h-screen">
 
-<div class="max-w-7xl mx-auto p-6 space-y-6">
+<div class="max-w-7xl mx-auto p-6 space-y-8">
 
+  <!-- HEADER -->
   <header>
     <h1 class="text-2xl font-semibold">Stock & MF Cycle Analyzer</h1>
     <p class="text-slate-400 text-sm">
@@ -25,7 +26,7 @@
 
   <!-- INPUTS -->
   <section class="bg-slate-900 border border-slate-800 rounded-xl p-6">
-    <h2 class="text-lg font-medium mb-4">Inputs</h2>
+    <h2 class="text-lg font-medium mb-4">Analysis Inputs</h2>
 
     <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
 
@@ -73,9 +74,7 @@
       </div>
 
       <div>
-        <label class="text-sm text-slate-400">
-          Risk-Free / Hurdle Rate (%)
-        </label>
+        <label class="text-sm text-slate-400">Risk-free / Hurdle Rate (%)</label>
         <input id="risk_free_rate" type="number" step="0.1" value="6.0"
           class="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2" />
       </div>
@@ -92,8 +91,8 @@
 
   <!-- SUMMARY -->
   <section class="bg-slate-900 border border-slate-800 rounded-xl p-6">
-    <h2 class="text-lg font-medium mb-4">Summary</h2>
-    <div class="flex flex-wrap gap-6 text-sm">
+    <h2 class="text-lg font-medium mb-3">Summary</h2>
+    <div class="flex flex-wrap gap-8 text-sm">
       <div id="avg"></div>
       <div id="std"></div>
       <div id="sharpe"></div>
@@ -103,9 +102,9 @@
 
   <!-- TABLE -->
   <section class="bg-slate-900 border border-slate-800 rounded-xl p-6">
-    <h2 class="text-lg font-medium mb-4">Cycle Returns</h2>
+    <h2 class="text-lg font-medium mb-3">Cycle Returns</h2>
 
-    <table class="w-full text-sm border border-slate-800">
+    <table class="w-full text-sm border border-slate-800 rounded overflow-hidden">
       <thead class="bg-slate-800 text-slate-400">
         <tr>
           <th class="px-3 py-2">Cycle</th>
@@ -114,14 +113,14 @@
           <th class="px-3 py-2">Return %</th>
         </tr>
       </thead>
-      <tbody id="tableBody"></tbody>
+      <tbody id="tableBody" class="divide-y divide-slate-800"></tbody>
     </table>
   </section>
 
   <!-- GRAPH -->
   <section class="bg-slate-900 border border-slate-800 rounded-xl p-6">
-    <h2 class="text-lg font-medium mb-4">Price Trend</h2>
-    <canvas id="priceChart" height="280"></canvas>
+    <h2 class="text-lg font-medium mb-3">Price Trend (Cycle Boundaries)</h2>
+    <canvas id="priceChart" height="300"></canvas>
   </section>
 
 </div>
@@ -142,10 +141,12 @@ async function run() {
 
   const analyze = await (await fetch("/analyze?" + params)).json();
   const price = await (await fetch("/price-series?" + params)).json();
+  if (!price.dates) return;
 
   avg.textContent = `Average Return: ${analyze.average_growth_percent}%`;
   std.textContent = `Std Dev: ${analyze.std_dev_percent}%`;
-  sharpe.textContent = `Sharpe (hurdle ${analyze.risk_free_rate_used}%): ${analyze.sharpe_ratio}`;
+  sharpe.textContent =
+    `Sharpe (hurdle ${analyze.risk_free_rate_used}%): ${analyze.sharpe_ratio}`;
   cagr.textContent = analyze.cagr_percent
     ? `CAGR: ${analyze.cagr_percent}%`
     : "";
@@ -170,18 +171,55 @@ function drawChart(data) {
   const ctx = priceChart.getContext("2d");
   if (chart) chart.destroy();
 
+  // map date -> index
+  const index = {};
+  data.dates.forEach((d, i) => index[d] = i);
+
+  // points EXACTLY on price line (cycle end)
+  const points = data.cycles
+    .map(c => {
+      const i = index[c.end];
+      return i !== undefined
+        ? { x: i, y: data.prices[i] }
+        : null;
+    })
+    .filter(Boolean);
+
   chart = new Chart(ctx, {
     type: "line",
     data: {
       labels: data.dates,
-      datasets: [{
-        label: "Price",
-        data: data.prices,
-        borderColor: "#60a5fa",
-        borderWidth: 2,
-        pointRadius: 0,
-        tension: 0.25
-      }]
+      datasets: [
+        {
+          label: "Price",
+          data: data.prices,
+          borderColor: "#60a5fa",
+          borderWidth: 2.2,
+          pointRadius: 0,
+          tension: 0.25
+        },
+        {
+          label: "Cycle Boundary",
+          data: points,
+          showLine: false,
+          pointRadius: 4,              // 👈 smaller dots
+          pointHoverRadius: 6,
+          backgroundColor: "#22c55e",  // 👈 clean green
+          borderColor: "#16a34a"
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { labels: { boxWidth: 12 } }
+      },
+      scales: {
+        x: { ticks: { maxTicksLimit: 8 } },
+        y: {
+          ticks: { callback: v => "₹" + v }
+        }
+      }
     }
   });
 }
