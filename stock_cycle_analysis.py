@@ -2,26 +2,22 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
-import yfinance as yf
 import statistics
+import yfinance as yf
+
+app = FastAPI(title="Stock & Mutual Fund Cycle Analyzer")
 
 
-app = FastAPI(title="Stock & Mutual Fund Analyzer")
+# -------------------- UTILS --------------------
 
-# ---------------- UI ----------------
-@app.get("/", response_class=HTMLResponse)
-def home():
-    with open("index.html", "r", encoding="utf-8") as f:
-        return f.read()
-
-# ---------------- HELPERS ----------------
-def parse_date(d: str):
+def parse_date(d: str) -> datetime:
     try:
         return datetime.strptime(d, "%Y-%m-%d")
     except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid date format")
+        raise HTTPException(status_code=400, detail="Invalid date format (YYYY-MM-DD)")
 
-def get_price_series(symbol, start, end):
+
+def get_price_series(symbol: str, start: datetime, end: datetime):
     data = yf.download(
         symbol,
         start=start.strftime("%Y-%m-%d"),
@@ -31,9 +27,11 @@ def get_price_series(symbol, start, end):
     )
 
     if data is None or data.empty:
-        raise HTTPException(status_code=404, detail="No price data")
+        raise HTTPException(status_code=404, detail="No price data found")
 
     close = data["Close"]
+
+    # handle dataframe edge case
     if hasattr(close.iloc[0], "__iter__"):
         close = close.iloc[:, 0]
 
@@ -42,7 +40,17 @@ def get_price_series(symbol, start, end):
 
     return dates, prices
 
-# ---------------- ANALYZE (UNCHANGED LOGIC) ----------------
+
+# -------------------- HOME --------------------
+
+@app.get("/", response_class=HTMLResponse)
+def home():
+    with open("index.html", "r", encoding="utf-8") as f:
+        return f.read()
+
+
+# -------------------- ANALYZE --------------------
+
 @app.get("/analyze")
 def analyze(
     symbol: str,
@@ -58,8 +66,7 @@ def analyze(
     end_date = parse_date(end_date)
 
     results = []
-    total_growth = 0
-    valid = 0
+    total_growth = 0.0
 
     oldest_start_price = None
     newest_end_price = None
@@ -69,14 +76,17 @@ def analyze(
         cycle_start = cycle_end - relativedelta(**{duration_unit: duration_value})
 
         dates, prices = get_price_series(symbol, cycle_start, cycle_end)
+
         start_price = prices[0]
         end_price = prices[-1]
 
-        oldest_start_price = start_price
-        if newest_end_price is None:
-            newest_end_price = end_price
+        if oldest_start_price is None:
+            oldest_start_price = start_price
+
+        newest_end_price = end_price
 
         growth = ((end_price - start_price) / start_price) * 100
+        total_growth += growth
 
         results.append({
             "cycle": i + 1,
@@ -85,29 +95,33 @@ def analyze(
             "growth_percent": round(growth, 2)
         })
 
-        total_growth += growth
-        valid += 1
-
+    avg_growth = total_growth / len(results)
     cycle_returns = [r["growth_percent"] for r in results]
 
-std_dev = statistics.pstdev(cycle_returns) if len(cycle_returns) > 1 else 0.0
+    std_dev = (
+        statistics.pstdev(cycle_returns)
+        if len(cycle_returns) > 1
+        else 0.0
+    )
 
-response = {
-    "symbol": symbol.upper(),
-    "average_growth_percent": round(total_growth / valid, 2),
-    "std_dev_percent": round(std_dev, 2),
-    "results": results
-}
+    response = {
+        "symbol": symbol.upper(),
+        "average_growth_percent": round(avg_growth, 2),
+        "std_dev_percent": round(std_dev, 2),
+        "results": results
+    }
 
-    # MF-only CAGR (correctly anchored)
+    # CAGR only for mutual funds
     if asset_type == "mf":
-        total_years = duration_value * valid
+        total_years = duration_value * cycles
         cagr = (newest_end_price / oldest_start_price) ** (1 / total_years) - 1
         response["cagr_percent"] = round(cagr * 100, 2)
 
     return response
 
-# ---------------- PRICE SERIES FOR GRAPH ----------------
+
+# -------------------- PRICE SERIES (GRAPH) --------------------
+
 @app.get("/price-series")
 def price_series(
     symbol: str,
@@ -121,7 +135,6 @@ def price_series(
 
     end_date = parse_date(end_date)
 
-    # earliest start needed for graph
     earliest_start = end_date - relativedelta(
         **{duration_unit: duration_value * cycles}
     )
