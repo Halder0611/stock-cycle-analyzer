@@ -2,75 +2,170 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Stock / Mutual Fund Analyzer</title>
+  <title>Stock & MF Cycle Analyzer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
   <style>
     body {
-      background: #0b1220;
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: #020617;
       color: #e5e7eb;
-      font-family: ui-monospace, monospace;
-      padding: 40px;
-      max-width: 900px;
-      margin: auto;
     }
-    h1 { color: #38bdf8; }
+
+    .container {
+      max-width: 1100px;
+      margin: auto;
+      padding: 24px;
+    }
+
+    h1 {
+      margin-bottom: 16px;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
     input, select, button {
-      padding: 10px;
-      margin: 6px 0;
-      width: 100%;
       background: #020617;
       color: #e5e7eb;
       border: 1px solid #1f2937;
+      padding: 10px;
       border-radius: 6px;
+      font-size: 14px;
     }
+
     button {
-      background: #38bdf8;
-      color: #020617;
-      font-weight: bold;
+      background: #2563eb;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    button:hover {
+      background: #1d4ed8;
+    }
+
+    .search-box {
+      position: relative;
+    }
+
+    .suggestions {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: #020617;
+      border: 1px solid #1f2937;
+      z-index: 10;
+    }
+
+    .suggestions div {
+      padding: 8px;
       cursor: pointer;
     }
-    pre {
-      margin-top: 20px;
+
+    .suggestions div:hover {
+      background: #1f2937;
+    }
+
+    canvas {
+      margin-top: 24px;
       background: #020617;
-      padding: 16px;
-      border-radius: 8px;
-      font-size: 13px;
+    }
+
+    pre {
+      margin-top: 24px;
+      background: #020617;
+      border: 1px solid #1f2937;
+      padding: 12px;
       overflow-x: auto;
+      font-size: 13px;
     }
   </style>
 </head>
+
 <body>
+  <div class="container">
+    <h1>Stock & Mutual Fund Cycle Analyzer</h1>
 
-<h1>Stock / Mutual Fund Analyzer</h1>
+    <div class="controls">
+      <!-- Search -->
+      <div class="search-box">
+        <input id="symbol" placeholder="Search stock (e.g. TCS, Apple)" oninput="suggest()" />
+        <div id="suggestions" class="suggestions"></div>
+      </div>
 
-<input id="symbol" placeholder="AAPL / NALCO.NS / VFIAX" />
+      <input id="end_date" type="date" />
 
-<label>End Date</label>
-<input id="end_date" type="date" />
+      <input id="duration_value" type="number" value="1" min="1" />
 
-<label>Cycles</label>
-<input id="cycles" type="number" value="5" />
+      <select id="duration_unit">
+        <option value="years">Years</option>
+        <option value="months">Months</option>
+        <option value="days">Days</option>
+      </select>
 
-<label>Duration</label>
-<input id="duration_value" type="number" value="1" />
-<select id="duration_unit">
-  <option value="years">years</option>
-  <option value="months">months</option>
-  <option value="days">days</option>
-</select>
+      <input id="cycles" type="number" value="5" min="1" />
 
-<label>Asset Type</label>
-<select id="asset_type">
-  <option value="stock">Stock</option>
-  <option value="mf">Mutual Fund</option>
-</select>
+      <select id="asset_type">
+        <option value="stock">Stock</option>
+        <option value="mf">Mutual Fund</option>
+      </select>
 
-<button onclick="run()">Analyze</button>
+      <button onclick="run()">Analyze</button>
+    </div>
 
-<pre id="output">// result will appear here</pre>
+    <!-- Graph -->
+    <canvas id="priceChart" height="120"></canvas>
+
+    <!-- Output (dev friendly for now) -->
+    <pre id="output"></pre>
+  </div>
 
 <script>
-document.getElementById("end_date").value =
-  new Date().toISOString().slice(0, 10);
+/* ---------------- STOCK SEARCH (frontend-only for now) ---------------- */
+
+const STOCKS = [
+  { name: "Tata Consultancy Services", symbol: "TCS.NS" },
+  { name: "Reliance Industries", symbol: "RELIANCE.NS" },
+  { name: "Infosys", symbol: "INFY.NS" },
+  { name: "HDFC Bank", symbol: "HDFCBANK.NS" },
+  { name: "Apple", symbol: "AAPL" },
+  { name: "Microsoft", symbol: "MSFT" }
+];
+
+function suggest() {
+  const q = symbol.value.toLowerCase();
+  const box = document.getElementById("suggestions");
+  box.innerHTML = "";
+
+  if (!q) return;
+
+  STOCKS
+    .filter(s => s.name.toLowerCase().includes(q))
+    .slice(0, 5)
+    .forEach(s => {
+      const div = document.createElement("div");
+      div.textContent = `${s.name} (${s.symbol})`;
+      div.onclick = () => {
+        symbol.value = s.symbol;
+        box.innerHTML = "";
+      };
+      box.appendChild(div);
+    });
+}
+
+/* ---------------- GRAPH LOGIC ---------------- */
+
+let priceChart = null;
 
 async function run() {
   const output = document.getElementById("output");
@@ -86,12 +181,96 @@ async function run() {
   });
 
   try {
-    const res = await fetch("/analyze?" + params);
-    const json = await res.json();
-    output.textContent = JSON.stringify(json, null, 2);
+    const analyzeRes = await fetch("/analyze?" + params);
+    const analyzeData = await analyzeRes.json();
+
+    const priceRes = await fetch("/price-series?" + params);
+    const priceData = await priceRes.json();
+
+    output.textContent = JSON.stringify(analyzeData, null, 2);
+    drawChart(priceData);
+
   } catch (err) {
     output.textContent = "ERROR: " + err;
   }
+}
+
+function drawChart(data) {
+  const ctx = document.getElementById("priceChart").getContext("2d");
+  if (priceChart) priceChart.destroy();
+
+  const dateIndex = {};
+  data.dates.forEach((d, i) => dateIndex[d] = i);
+
+  const startPoints = [];
+  const endPoints = [];
+
+  data.cycles.forEach(c => {
+    if (dateIndex[c.start] !== undefined) {
+      startPoints.push({
+        x: dateIndex[c.start],
+        y: data.prices[dateIndex[c.start]],
+        cycle: c.cycle
+      });
+    }
+    if (dateIndex[c.end] !== undefined) {
+      endPoints.push({
+        x: dateIndex[c.end],
+        y: data.prices[dateIndex[c.end]],
+        cycle: c.cycle
+      });
+    }
+  });
+
+  priceChart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: data.dates,
+      datasets: [
+        {
+          label: "Price",
+          data: data.prices,
+          borderWidth: 2,
+          tension: 0.25,
+          pointRadius: 0
+        },
+        {
+          label: "Cycle Start",
+          data: startPoints,
+          showLine: false,
+          pointRadius: 6,
+          backgroundColor: "green"
+        },
+        {
+          label: "Cycle End",
+          data: endPoints,
+          showLine: false,
+          pointRadius: 6,
+          backgroundColor: "red"
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              if (ctx.raw?.cycle) {
+                return `Cycle ${ctx.raw.cycle} • ₹${ctx.raw.y.toFixed(2)}`;
+              }
+              return `₹${ctx.raw.toFixed(2)}`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { maxTicksLimit: 10 }
+        }
+      }
+    }
+  });
 }
 </script>
 
