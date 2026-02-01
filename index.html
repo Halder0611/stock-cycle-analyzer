@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Cycle Analyzer</title>
+  <title>Stock & Mutual Fund Cycle Analyzer</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <!-- Tailwind -->
@@ -10,79 +10,96 @@
 
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .gradient-header { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); }
+    .card-hover { transition: all 0.3s ease; }
+    .card-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+    .input-field { transition: all 0.2s ease; }
+    .input-field:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
+    .stat-card { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-left: 3px solid #3b82f6; }
+    .stat-positive { border-left-color: #10b981; }
+    .stat-negative { border-left-color: #ef4444; }
+  </style>
 </head>
 
-<body class="bg-slate-950 text-slate-200 min-h-screen">
+<body class="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-slate-200 min-h-screen">
 
-<div class="max-w-7xl mx-auto p-6 space-y-8">
+<div class="max-w-7xl mx-auto p-4 sm:p-6 space-y-8">
 
   <!-- HEADER -->
-  <header>
-    <h1 class="text-2xl font-semibold">Stock & MF Cycle Analyzer</h1>
-    <p class="text-slate-400 text-sm">
-      Rolling returns • Risk • Hurdle-based Sharpe
+  <header class="gradient-header rounded-2xl p-8 sm:p-12 shadow-2xl">
+    <h1 class="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
+      Stock & MF Cycle Analyzer
+    </h1>
+    <p class="text-slate-400 text-base sm:text-lg mt-3">
+      📊 Rolling returns • 📈 Risk analysis • 💰 Hurdle-based Sharpe ratio
     </p>
   </header>
 
   <!-- INPUTS -->
-  <section class="bg-slate-900 border border-slate-800 rounded-xl p-6">
-    <h2 class="text-lg font-medium mb-4">Analysis Inputs</h2>
+  <section class="bg-slate-900/50 backdrop-blur border border-slate-700/50 rounded-2xl p-6 sm:p-8 card-hover shadow-xl">
+    <h2 class="text-2xl font-semibold mb-6 text-slate-100">📋 Analysis Inputs</h2>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
 
-      <div>
-        <label class="text-sm text-slate-400">Symbol</label>
-        <input id="symbol" placeholder="TCS.NS, ^NSEI, AAPL"
-          class="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2" />
+      <div class="lg:col-span-1">
+        <label class="text-sm font-medium text-slate-300 block mb-2">Symbol</label>
+        <input id="symbol" placeholder="e.g., TCS.NS, ^NSEI" value="^NSEI"
+          class="w-full bg-slate-800/50 border border-slate-600 rounded-lg px-4 py-2.5 text-slate-100 placeholder-slate-500 input-field" />
+        <p class="text-xs text-slate-500 mt-1">Yahoo Finance symbol</p>
       </div>
 
-      <div>
-        <label class="text-sm text-slate-400">End Date</label>
+      <div class="lg:col-span-1">
+        <label class="text-sm font-medium text-slate-300 block mb-2">End Date</label>
         <input id="end_date" type="date"
-          class="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2" />
+          class="w-full bg-slate-800/50 border border-slate-600 rounded-lg px-4 py-2.5 text-slate-100 input-field" />
       </div>
 
-      <div>
-        <label class="text-sm text-slate-400">Cycle Duration</label>
-        <input id="duration_value" type="number" value="1" min="1"
-          class="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2" />
+      <div class="lg:col-span-1">
+        <label class="text-sm font-medium text-slate-300 block mb-2">Cycle Duration</label>
+        <div class="flex gap-2">
+          <input id="duration_value" type="number" value="1" min="1" max="100"
+            class="w-2/3 bg-slate-800/50 border border-slate-600 rounded-lg px-4 py-2.5 text-slate-100 input-field" />
+          <select id="duration_unit"
+            class="w-1/3 bg-slate-800/50 border border-slate-600 rounded-lg px-2 py-2.5 text-slate-100 input-field text-sm">
+            <option value="years">Years</option>
+            <option value="months">Months</option>
+            <option value="days">Days</option>
+          </select>
+        </div>
       </div>
 
-      <div>
-        <label class="text-sm text-slate-400">Duration Unit</label>
-        <select id="duration_unit"
-          class="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2">
-          <option value="years">Years</option>
-          <option value="months">Months</option>
-          <option value="days">Days</option>
-        </select>
+      <div class="lg:col-span-1">
+        <label class="text-sm font-medium text-slate-300 block mb-2">Number of Cycles</label>
+        <input id="cycles" type="number" value="5" min="1" max="50"
+          class="w-full bg-slate-800/50 border border-slate-600 rounded-lg px-4 py-2.5 text-slate-100 input-field" />
       </div>
 
-      <div>
-        <label class="text-sm text-slate-400">Number of Cycles</label>
-        <input id="cycles" type="number" value="5" min="1"
-          class="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2" />
-      </div>
-
-      <div>
-        <label class="text-sm text-slate-400">Asset Type</label>
+      <div class="lg:col-span-1">
+        <label class="text-sm font-medium text-slate-300 block mb-2">Asset Type</label>
         <select id="asset_type"
-          class="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2">
-          <option value="stock">Stock</option>
-          <option value="mf">Mutual Fund</option>
+          class="w-full bg-slate-800/50 border border-slate-600 rounded-lg px-4 py-2.5 text-slate-100 input-field">
+          <option value="stock">📈 Stock</option>
+          <option value="mf">💼 Mutual Fund</option>
         </select>
       </div>
 
-      <div>
-        <label class="text-sm text-slate-400">Risk-free / Hurdle Rate (%)</label>
-        <input id="risk_free_rate" type="number" step="0.1" value="6.0"
-          class="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2" />
+      <div class="lg:col-span-1">
+        <label class="text-sm font-medium text-slate-300 block mb-2">Risk-free Rate (%)</label>
+        <input id="risk_free_rate" type="number" step="0.1" value="6.0" min="0" max="100"
+          class="w-full bg-slate-800/50 border border-slate-600 rounded-lg px-4 py-2.5 text-slate-100 input-field" />
       </div>
 
-      <div class="flex items-end">
-        <button onclick="run()"
-          class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded">
-          Analyze
+      <div class="lg:col-span-2 flex gap-3">
+        <button onclick="run()" 
+          class="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold px-6 py-2.5 rounded-lg transition duration-200 shadow-lg hover:shadow-blue-500/50 active:scale-95">
+          🔍 Analyze
+        </button>
+        <button onclick="clearForm()" 
+          class="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold px-6 py-2.5 rounded-lg transition duration-200">
+          Clear
         </button>
       </div>
 
@@ -90,37 +107,46 @@
   </section>
 
   <!-- SUMMARY -->
-  <section class="bg-slate-900 border border-slate-800 rounded-xl p-6">
-    <h2 class="text-lg font-medium mb-3">Summary</h2>
-    <div class="flex flex-wrap gap-8 text-sm">
-      <div id="avg"></div>
-      <div id="std"></div>
-      <div id="sharpe"></div>
-      <div id="cagr"></div>
+  <section class="bg-slate-900/50 backdrop-blur border border-slate-700/50 rounded-2xl p-6 sm:p-8 card-hover shadow-xl">
+    <h2 class="text-2xl font-semibold mb-6 text-slate-100">📊 Summary Statistics</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div id="avg" class="stat-card p-4 rounded-lg"></div>
+      <div id="std" class="stat-card p-4 rounded-lg"></div>
+      <div id="sharpe" class="stat-card p-4 rounded-lg"></div>
+      <div id="cagr" class="stat-card p-4 rounded-lg"></div>
     </div>
+    <div id="error" class="mt-4 p-4 bg-red-950/50 border border-red-700/50 rounded-lg text-red-300 hidden"></div>
   </section>
 
   <!-- TABLE -->
-  <section class="bg-slate-900 border border-slate-800 rounded-xl p-6">
-    <h2 class="text-lg font-medium mb-3">Cycle Returns</h2>
+  <section class="bg-slate-900/50 backdrop-blur border border-slate-700/50 rounded-2xl p-6 sm:p-8 card-hover shadow-xl">
+    <h2 class="text-2xl font-semibold mb-6 text-slate-100">💹 Cycle-by-Cycle Returns</h2>
 
-    <table class="w-full text-sm border border-slate-800 rounded overflow-hidden">
-      <thead class="bg-slate-800 text-slate-400">
-        <tr>
-          <th class="px-3 py-2">Cycle</th>
-          <th class="px-3 py-2">From</th>
-          <th class="px-3 py-2">To</th>
-          <th class="px-3 py-2">Return %</th>
-        </tr>
-      </thead>
-      <tbody id="tableBody" class="divide-y divide-slate-800"></tbody>
-    </table>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="bg-slate-800/70 border-b border-slate-700">
+          <tr>
+            <th class="px-4 py-3 text-left font-semibold text-slate-300">Cycle</th>
+            <th class="px-4 py-3 text-center font-semibold text-slate-300">From</th>
+            <th class="px-4 py-3 text-center font-semibold text-slate-300">To</th>
+            <th class="px-4 py-3 text-right font-semibold text-slate-300">Return %</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody" class="divide-y divide-slate-700/50">
+          <tr class="text-slate-500">
+            <td colspan="4" class="px-4 py-8 text-center">Run analysis to see cycle returns</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </section>
 
   <!-- GRAPH -->
-  <section class="bg-slate-900 border border-slate-800 rounded-xl p-6">
-    <h2 class="text-lg font-medium mb-3">Price Trend (Cycle Boundaries)</h2>
-    <canvas id="priceChart" height="300"></canvas>
+  <section class="bg-slate-900/50 backdrop-blur border border-slate-700/50 rounded-2xl p-6 sm:p-8 card-hover shadow-xl">
+    <h2 class="text-2xl font-semibold mb-6 text-slate-100">📈 Price Trend & Cycle Boundaries</h2>
+    <div class="bg-slate-800/30 rounded-lg p-4">
+      <canvas id="priceChart" height="90"></canvas>
+    </div>
   </section>
 
 </div>
@@ -128,102 +154,182 @@
 <script>
 let chart = null;
 
+function formatValue(label, value, isPercent = false) {
+  if (value === null || value === undefined || isNaN(value)) return `${label}: N/A`;
+  const formatted = isPercent ? `${parseFloat(value).toFixed(2)}%` : parseFloat(value).toFixed(2);
+  return `<span class="font-semibold text-slate-100">${formatted}</span>`;
+}
+
 async function run() {
-  const params = new URLSearchParams({
-    symbol: symbol.value.trim(),
-    end_date: end_date.value,
-    cycles: cycles.value,
-    duration_value: duration_value.value,
-    duration_unit: duration_unit.value,
-    asset_type: asset_type.value,
-    risk_free_rate: risk_free_rate.value
-  });
+  try {
+    const errorDiv = document.getElementById('error');
+    errorDiv.classList.add('hidden');
 
-  const analyze = await (await fetch("/analyze?" + params)).json();
-  const price = await (await fetch("/price-series?" + params)).json();
-  if (!price.dates) return;
+    const symbol = document.getElementById('symbol')?.value?.trim();
+    const end_date = document.getElementById('end_date')?.value;
+    const cycles = document.getElementById('cycles')?.value;
+    const duration_value = document.getElementById('duration_value')?.value;
+    const duration_unit = document.getElementById('duration_unit')?.value;
+    const asset_type = document.getElementById('asset_type')?.value;
+    const risk_free_rate = document.getElementById('risk_free_rate')?.value;
 
-  avg.textContent = `Average Return: ${analyze.average_growth_percent}%`;
-  std.textContent = `Std Dev: ${analyze.std_dev_percent}%`;
-  sharpe.textContent =
-    `Sharpe (hurdle ${analyze.risk_free_rate_used}%): ${analyze.sharpe_ratio}`;
-  cagr.textContent = analyze.cagr_percent
-    ? `CAGR: ${analyze.cagr_percent}%`
-    : "";
+    if (!symbol || !end_date) {
+      showError('Please fill in Symbol and End Date');
+      return;
+    }
 
-  tableBody.innerHTML = "";
-  analyze.results.forEach(r => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td class="px-3 py-2 text-center">${r.cycle}</td>
-      <td class="px-3 py-2 text-center">${r.from}</td>
-      <td class="px-3 py-2 text-center">${r.to}</td>
-      <td class="px-3 py-2 text-center ${r.growth_percent >= 0 ? "text-green-400" : "text-red-400"}">
-        ${r.growth_percent}
-      </td>`;
-    tableBody.appendChild(tr);
-  });
+    const params = new URLSearchParams({
+      symbol, end_date, cycles, duration_value, duration_unit, asset_type, risk_free_rate
+    });
 
-  drawChart(price);
+    const analyzeResp = await fetch("/analyze?" + params);
+    if (!analyzeResp.ok) {
+      const err = await analyzeResp.json().catch(() => ({}));
+      showError(err.detail || 'Analysis failed. Check symbol and date.');
+      return;
+    }
+    const analyze = await analyzeResp.json();
+
+    const priceResp = await fetch("/price-series?" + params);
+    if (!priceResp.ok) {
+      showError('Price data unavailable');
+      return;
+    }
+    const price = await priceResp.json();
+
+    if (!price?.dates || !Array.isArray(price.dates) || price.dates.length === 0) {
+      showError('No price data available for this symbol');
+      return;
+    }
+
+    // Update summary
+    document.getElementById('avg').innerHTML = `<div class="text-xs text-slate-400 mb-1">Average Return</div>${formatValue('', analyze.average_growth_percent, true)}`;
+    document.getElementById('std').innerHTML = `<div class="text-xs text-slate-400 mb-1">Std Deviation</div>${formatValue('', analyze.std_dev_percent, true)}`;
+    document.getElementById('sharpe').innerHTML = `<div class="text-xs text-slate-400 mb-1">Sharpe Ratio</div><span class="font-semibold text-slate-100">${parseFloat(analyze.sharpe_ratio || 0).toFixed(2)}</span>`;
+    document.getElementById('cagr').innerHTML = analyze.cagr_percent ? `<div class="text-xs text-slate-400 mb-1">CAGR</div>${formatValue('', analyze.cagr_percent, true)}` : '';
+
+    // Update table
+    const tableBody = document.getElementById('tableBody');
+    tableBody.innerHTML = '';
+    
+    if (analyze.results && Array.isArray(analyze.results)) {
+      analyze.results.forEach(r => {
+        const tr = document.createElement('tr');
+        const isPositive = parseFloat(r.growth_percent) >= 0;
+        tr.className = 'hover:bg-slate-700/30 transition';
+        tr.innerHTML = `
+          <td class="px-4 py-3 font-medium text-slate-100">Cycle ${r.cycle}</td>
+          <td class="px-4 py-3 text-center text-slate-400">${r.from}</td>
+          <td class="px-4 py-3 text-center text-slate-400">${r.to}</td>
+          <td class="px-4 py-3 text-right font-semibold ${isPositive ? 'text-green-400' : 'text-red-400'}">
+            ${isPositive ? '+' : ''}${parseFloat(r.growth_percent).toFixed(2)}%
+          </td>
+        `;
+        tableBody.appendChild(tr);
+      });
+    }
+
+    drawChart(price);
+  } catch (e) {
+    showError('An error occurred: ' + e.message);
+  }
+}
+
+function showError(msg) {
+  const errorDiv = document.getElementById('error');
+  errorDiv.textContent = '⚠️ ' + msg;
+  errorDiv.classList.remove('hidden');
+}
+
+function clearForm() {
+  document.getElementById('symbol').value = '^NSEI';
+  document.getElementById('end_date').value = '';
+  document.getElementById('duration_value').value = '1';
+  document.getElementById('duration_unit').value = 'years';
+  document.getElementById('cycles').value = '5';
+  document.getElementById('asset_type').value = 'stock';
+  document.getElementById('risk_free_rate').value = '6.0';
+  document.getElementById('tableBody').innerHTML = '<tr class="text-slate-500"><td colspan="4" class="px-4 py-8 text-center">Run analysis to see cycle returns</td></tr>';
+  if (chart) chart.destroy();
 }
 
 function drawChart(data) {
-  const ctx = priceChart.getContext("2d");
+  const ctx = document.getElementById('priceChart')?.getContext('2d');
+  if (!ctx) return;
   if (chart) chart.destroy();
 
-  // map date -> index
   const index = {};
-  data.dates.forEach((d, i) => index[d] = i);
+  (data.dates || []).forEach((d, i) => index[d] = i);
 
-  // points EXACTLY on price line (cycle end)
-  const points = data.cycles
+  const points = (data.cycles || [])
     .map(c => {
       const i = index[c.end];
-      return i !== undefined
-        ? { x: i, y: data.prices[i] }
-        : null;
+      return i !== undefined ? { x: i, y: (data.prices || [])[i] } : null;
     })
     .filter(Boolean);
 
   chart = new Chart(ctx, {
-    type: "line",
+    type: 'line',
     data: {
-      labels: data.dates,
+      labels: data.dates || [],
       datasets: [
         {
-          label: "Price",
-          data: data.prices,
-          borderColor: "#60a5fa",
-          borderWidth: 2.2,
+          label: 'Price',
+          data: data.prices || [],
+          borderColor: '#3b82f6',
+          borderWidth: 2.5,
           pointRadius: 0,
-          tension: 0.25
+          fill: false,
+          tension: 0.3
         },
         {
-          label: "Cycle Boundary",
+          label: 'Cycle Boundary',
           data: points,
           showLine: false,
-          pointRadius: 4,              // 👈 smaller dots
-          pointHoverRadius: 6,
-          backgroundColor: "#22c55e",  // 👈 clean green
-          borderColor: "#16a34a"
+          pointRadius: 5,
+          pointHoverRadius: 7,
+          backgroundColor: '#10b981',
+          borderColor: '#059669',
+          borderWidth: 2
         }
       ]
     },
     options: {
       responsive: true,
+      maintainAspectRatio: false,
       plugins: {
-        legend: { labels: { boxWidth: 12 } }
+        legend: {
+          labels: { boxWidth: 12, font: { size: 12 }, color: '#94a3b8' }
+        }
       },
       scales: {
-        x: { ticks: { maxTicksLimit: 8 } },
+        x: {
+          ticks: { maxTicksLimit: 8, color: '#64748b', font: { size: 11 } },
+          grid: { color: 'rgba(100, 116, 139, 0.1)' }
+        },
         y: {
-          ticks: { callback: v => "₹" + v }
+          ticks: {
+            color: '#64748b',
+            font: { size: 11 },
+            callback: v => '₹' + (v || 0).toLocaleString('en-IN')
+          },
+          grid: { color: 'rgba(100, 116, 139, 0.1)' }
         }
       }
     }
   });
 }
+
+// Set today's date as default end date
+window.addEventListener('load', () => {
+  const today = new Date().toISOString().split('T')[0];
+  const endDateInput = document.getElementById('end_date');
+  if (endDateInput && !endDateInput.value) {
+    endDateInput.value = today;
+  }
+});
 </script>
 
 </body>
 </html>
+
