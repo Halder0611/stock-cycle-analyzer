@@ -88,10 +88,13 @@ def analyze(
         start_price = prices[0]
         end_price = prices[-1]
 
-        if oldest_start_price is None:
-            oldest_start_price = start_price
+        # Capture newest_end on first iteration (most recent date = end_date)
+        if i == 0:
+            newest_end_price = end_price
 
-        newest_end_price = end_price
+        # Capture oldest_start on last iteration (oldest date)
+        if i == cycles - 1:
+            oldest_start_price = start_price
 
         growth = ((end_price - start_price) / start_price) * 100
         cycle_returns.append(growth)
@@ -131,9 +134,17 @@ def analyze(
 
     # CAGR only for mutual funds
     if asset_type == "mf":
-        total_years = duration_value * cycles
-        cagr = (newest_end_price / oldest_start_price) ** (1 / total_years) - 1
-        response["cagr_percent"] = round(cagr * 100, 2)
+        # Convert total duration to years
+        if duration_unit == "years":
+            total_years = duration_value * cycles
+        elif duration_unit == "months":
+            total_years = (duration_value * cycles) / 12
+        else:  # days
+            total_years = (duration_value * cycles) / 365.25
+        
+        if total_years > 0 and oldest_start_price > 0:
+            cagr = (newest_end_price / oldest_start_price) ** (1 / total_years) - 1
+            response["cagr_percent"] = round(cagr * 100, 2)
 
     return response
 
