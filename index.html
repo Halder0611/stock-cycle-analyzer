@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Stock Cycle Analyzer</title>
+  <title>Stock & Mutual Fund Cycle Analyzer</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -37,6 +37,7 @@
       border: 1px solid #1f2937;
       padding: 10px;
       border-radius: 6px;
+      font-size: 14px;
     }
 
     button {
@@ -100,12 +101,15 @@
 
     <input id="end_date" type="date" />
     <input id="duration_value" type="number" value="1" min="1" />
+
     <select id="duration_unit">
       <option value="years">Years</option>
       <option value="months">Months</option>
       <option value="days">Days</option>
     </select>
+
     <input id="cycles" type="number" value="5" min="1" />
+
     <select id="asset_type">
       <option value="stock">Stock</option>
       <option value="mf">Mutual Fund</option>
@@ -191,25 +195,21 @@ function drawChart(data) {
   const ctx = document.getElementById("priceChart").getContext("2d");
   if (chart) chart.destroy();
 
+  // map date -> index
   const dateIndex = {};
   data.dates.forEach((d, i) => dateIndex[d] = i);
 
-  const startPoints = [];
-  const endPoints = [];
+  // ONE marker per cycle (cycle END)
+  const cyclePoints = [];
 
   data.cycles.forEach(c => {
-    if (dateIndex[c.start] !== undefined) {
-      startPoints.push({
-        x: dateIndex[c.start],
-        y: data.prices[dateIndex[c.start]],
-        cycle: c.cycle
-      });
-    }
-    if (dateIndex[c.end] !== undefined) {
-      endPoints.push({
-        x: dateIndex[c.end],
-        y: data.prices[dateIndex[c.end]],
-        cycle: c.cycle
+    const idx = dateIndex[c.end];
+    if (idx !== undefined) {
+      cyclePoints.push({
+        x: idx,
+        y: data.prices[idx],
+        cycle: c.cycle,
+        date: c.end
       });
     }
   });
@@ -227,18 +227,11 @@ function drawChart(data) {
           pointRadius: 0
         },
         {
-          label: "Cycle Start",
-          data: startPoints,
+          label: "Cycle Boundary",
+          data: cyclePoints,
           showLine: false,
           pointRadius: 6,
-          backgroundColor: "green"
-        },
-        {
-          label: "Cycle End",
-          data: endPoints,
-          showLine: false,
-          pointRadius: 6,
-          backgroundColor: "red"
+          backgroundColor: "#22c55e"
         }
       ]
     },
@@ -249,7 +242,7 @@ function drawChart(data) {
           callbacks: {
             label: ctx => {
               if (ctx.raw?.cycle) {
-                return `Cycle ${ctx.raw.cycle} • ${ctx.raw.y.toFixed(2)}`;
+                return `Cycle ${ctx.raw.cycle} (${ctx.raw.date}) • ${ctx.raw.y.toFixed(2)}`;
               }
               return ctx.raw.toFixed(2);
             }
