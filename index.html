@@ -2,18 +2,17 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Stock & MF Cycle Analyzer</title>
+  <title>Stock Cycle Analyzer</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
     body {
       margin: 0;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
       background: #020617;
       color: #e5e7eb;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
     }
 
     .container {
@@ -30,7 +29,6 @@
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
       gap: 12px;
-      margin-bottom: 16px;
     }
 
     input, select, button {
@@ -39,7 +37,6 @@
       border: 1px solid #1f2937;
       padding: 10px;
       border-radius: 6px;
-      font-size: 14px;
     }
 
     button {
@@ -78,7 +75,6 @@
 
     canvas {
       margin-top: 24px;
-      background: #020617;
     }
 
     pre {
@@ -86,52 +82,44 @@
       background: #020617;
       border: 1px solid #1f2937;
       padding: 12px;
-      overflow-x: auto;
       font-size: 13px;
+      overflow-x: auto;
     }
   </style>
 </head>
 
 <body>
-  <div class="container">
-    <h1>Stock & Mutual Fund Cycle Analyzer</h1>
+<div class="container">
+  <h1>Stock & Mutual Fund Cycle Analyzer</h1>
 
-    <div class="controls">
-      <!-- Search -->
-      <div class="search-box">
-        <input id="symbol" placeholder="Search stock (e.g. TCS, Apple)" oninput="suggest()" />
-        <div id="suggestions" class="suggestions"></div>
-      </div>
-
-      <input id="end_date" type="date" />
-
-      <input id="duration_value" type="number" value="1" min="1" />
-
-      <select id="duration_unit">
-        <option value="years">Years</option>
-        <option value="months">Months</option>
-        <option value="days">Days</option>
-      </select>
-
-      <input id="cycles" type="number" value="5" min="1" />
-
-      <select id="asset_type">
-        <option value="stock">Stock</option>
-        <option value="mf">Mutual Fund</option>
-      </select>
-
-      <button onclick="run()">Analyze</button>
+  <div class="controls">
+    <div class="search-box">
+      <input id="symbol" placeholder="Search stock (TCS, Apple)" oninput="suggest()" />
+      <div id="suggestions" class="suggestions"></div>
     </div>
 
-    <!-- Graph -->
-    <canvas id="priceChart" height="120"></canvas>
+    <input id="end_date" type="date" />
+    <input id="duration_value" type="number" value="1" min="1" />
+    <select id="duration_unit">
+      <option value="years">Years</option>
+      <option value="months">Months</option>
+      <option value="days">Days</option>
+    </select>
+    <input id="cycles" type="number" value="5" min="1" />
+    <select id="asset_type">
+      <option value="stock">Stock</option>
+      <option value="mf">Mutual Fund</option>
+    </select>
 
-    <!-- Output (dev friendly for now) -->
-    <pre id="output"></pre>
+    <button onclick="run()">Analyze</button>
   </div>
 
+  <canvas id="priceChart" height="120"></canvas>
+  <pre id="output"></pre>
+</div>
+
 <script>
-/* ---------------- STOCK SEARCH (frontend-only for now) ---------------- */
+/* ---------- SEARCH (frontend-only) ---------- */
 
 const STOCKS = [
   { name: "Tata Consultancy Services", symbol: "TCS.NS" },
@@ -146,11 +134,9 @@ function suggest() {
   const q = symbol.value.toLowerCase();
   const box = document.getElementById("suggestions");
   box.innerHTML = "";
-
   if (!q) return;
 
-  STOCKS
-    .filter(s => s.name.toLowerCase().includes(q))
+  STOCKS.filter(s => s.name.toLowerCase().includes(q))
     .slice(0, 5)
     .forEach(s => {
       const div = document.createElement("div");
@@ -163,9 +149,9 @@ function suggest() {
     });
 }
 
-/* ---------------- GRAPH LOGIC ---------------- */
+/* ---------- GRAPH ---------- */
 
-let priceChart = null;
+let chart = null;
 
 async function run() {
   const output = document.getElementById("output");
@@ -187,17 +173,23 @@ async function run() {
     const priceRes = await fetch("/price-series?" + params);
     const priceData = await priceRes.json();
 
+    if (!priceData || !priceData.dates || !priceData.prices) {
+      output.textContent =
+        "Price-series error:\n" + JSON.stringify(priceData, null, 2);
+      return;
+    }
+
     output.textContent = JSON.stringify(analyzeData, null, 2);
     drawChart(priceData);
 
-  } catch (err) {
-    output.textContent = "ERROR: " + err;
+  } catch (e) {
+    output.textContent = "ERROR: " + e;
   }
 }
 
 function drawChart(data) {
   const ctx = document.getElementById("priceChart").getContext("2d");
-  if (priceChart) priceChart.destroy();
+  if (chart) chart.destroy();
 
   const dateIndex = {};
   data.dates.forEach((d, i) => dateIndex[d] = i);
@@ -222,7 +214,7 @@ function drawChart(data) {
     }
   });
 
-  priceChart = new Chart(ctx, {
+  chart = new Chart(ctx, {
     type: "line",
     data: {
       labels: data.dates,
@@ -257,17 +249,15 @@ function drawChart(data) {
           callbacks: {
             label: ctx => {
               if (ctx.raw?.cycle) {
-                return `Cycle ${ctx.raw.cycle} • ₹${ctx.raw.y.toFixed(2)}`;
+                return `Cycle ${ctx.raw.cycle} • ${ctx.raw.y.toFixed(2)}`;
               }
-              return `₹${ctx.raw.toFixed(2)}`;
+              return ctx.raw.toFixed(2);
             }
           }
         }
       },
       scales: {
-        x: {
-          ticks: { maxTicksLimit: 10 }
-        }
+        x: { ticks: { maxTicksLimit: 10 } }
       }
     }
   });
