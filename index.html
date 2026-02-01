@@ -31,16 +31,16 @@
   <!-- HEADER -->
   <header class="gradient-header rounded-2xl p-8 sm:p-12 shadow-2xl">
     <h1 class="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-      Stock & MF Cycle Analyzer
+      Stock & Mutual Fund Cycle Analyzer
     </h1>
     <p class="text-slate-400 text-base sm:text-lg mt-3">
-      📊 Rolling returns • 📈 Risk analysis • 💰 Hurdle-based Sharpe ratio
+      Rolling returns • Risk analysis • Hurdle-based Sharpe ratio
     </p>
   </header>
 
   <!-- INPUTS -->
   <section class="bg-slate-900/50 backdrop-blur border border-slate-700/50 rounded-2xl p-6 sm:p-8 card-hover shadow-xl">
-    <h2 class="text-2xl font-semibold mb-6 text-slate-100">📋 Analysis Inputs</h2>
+    <h2 class="text-2xl font-semibold mb-6 text-slate-100">Analysis Inputs</h2>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
 
@@ -81,8 +81,8 @@
         <label class="text-sm font-medium text-slate-300 block mb-2">Asset Type</label>
         <select id="asset_type"
           class="w-full bg-slate-800/50 border border-slate-600 rounded-lg px-4 py-2.5 text-slate-100 input-field">
-          <option value="stock">📈 Stock</option>
-          <option value="mf">💼 Mutual Fund</option>
+          <option value="stock">Stock</option>
+          <option value="mf">Mutual Fund</option>
         </select>
       </div>
 
@@ -95,7 +95,7 @@
       <div class="lg:col-span-2 flex gap-3">
         <button onclick="run()" 
           class="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold px-6 py-2.5 rounded-lg transition duration-200 shadow-lg hover:shadow-blue-500/50 active:scale-95">
-          🔍 Analyze
+          Analyze
         </button>
         <button onclick="clearForm()" 
           class="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold px-6 py-2.5 rounded-lg transition duration-200">
@@ -108,7 +108,7 @@
 
   <!-- SUMMARY -->
   <section class="bg-slate-900/50 backdrop-blur border border-slate-700/50 rounded-2xl p-6 sm:p-8 card-hover shadow-xl">
-    <h2 class="text-2xl font-semibold mb-6 text-slate-100">📊 Summary Statistics</h2>
+    <h2 class="text-2xl font-semibold mb-6 text-slate-100">Summary Statistics</h2>
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <div id="avg" class="stat-card p-4 rounded-lg"></div>
       <div id="std" class="stat-card p-4 rounded-lg"></div>
@@ -120,7 +120,7 @@
 
   <!-- TABLE -->
   <section class="bg-slate-900/50 backdrop-blur border border-slate-700/50 rounded-2xl p-6 sm:p-8 card-hover shadow-xl">
-    <h2 class="text-2xl font-semibold mb-6 text-slate-100">💹 Cycle-by-Cycle Returns</h2>
+    <h2 class="text-2xl font-semibold mb-6 text-slate-100">Cycle-by-Cycle Returns</h2>
 
     <div class="overflow-x-auto">
       <table class="w-full text-sm">
@@ -143,9 +143,9 @@
 
   <!-- GRAPH -->
   <section class="bg-slate-900/50 backdrop-blur border border-slate-700/50 rounded-2xl p-6 sm:p-8 card-hover shadow-xl">
-    <h2 class="text-2xl font-semibold mb-6 text-slate-100">📈 Price Trend & Cycle Boundaries</h2>
-    <div class="bg-slate-800/30 rounded-lg p-4">
-      <canvas id="priceChart" height="90"></canvas>
+    <h2 class="text-2xl font-semibold mb-6 text-slate-100">Price Trend & Cycle Boundaries</h2>
+    <div class="bg-slate-800/30 rounded-lg p-4 w-full" style="min-height: 500px;">
+      <canvas id="priceChart"></canvas>
     </div>
   </section>
 
@@ -237,7 +237,7 @@ async function run() {
 
 function showError(msg) {
   const errorDiv = document.getElementById('error');
-  errorDiv.textContent = '⚠️ ' + msg;
+  errorDiv.textContent = 'Error: ' + msg;
   errorDiv.classList.remove('hidden');
 }
 
@@ -258,13 +258,17 @@ function drawChart(data) {
   if (!ctx) return;
   if (chart) chart.destroy();
 
-  const index = {};
-  (data.dates || []).forEach((d, i) => index[d] = i);
+  // Create mapping of dates to prices for boundary points
+  const dateIndexMap = {};
+  (data.dates || []).forEach((d, i) => {
+    dateIndexMap[d] = (data.prices || [])[i];
+  });
 
-  const points = (data.cycles || [])
+  // Create boundary points using date labels directly
+  const boundaryPoints = (data.cycles || [])
     .map(c => {
-      const i = index[c.end];
-      return i !== undefined ? { x: i, y: (data.prices || [])[i] } : null;
+      const price = dateIndexMap[c.end];
+      return price !== undefined ? { x: c.end, y: price } : null;
     })
     .filter(Boolean);
 
@@ -284,7 +288,7 @@ function drawChart(data) {
         },
         {
           label: 'Cycle Boundary',
-          data: points,
+          data: boundaryPoints,
           showLine: false,
           pointRadius: 5,
           pointHoverRadius: 7,
@@ -331,5 +335,4 @@ window.addEventListener('load', () => {
 </script>
 
 </body>
-</html>
-
+</html> 
