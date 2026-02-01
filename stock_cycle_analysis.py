@@ -3,6 +3,8 @@ from fastapi.responses import HTMLResponse
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 import yfinance as yf
+import statistics
+
 
 app = FastAPI(title="Stock & Mutual Fund Analyzer")
 
@@ -86,11 +88,16 @@ def analyze(
         total_growth += growth
         valid += 1
 
-    response = {
-        "symbol": symbol.upper(),
-        "average_growth_percent": round(total_growth / valid, 2),
-        "results": results
-    }
+    cycle_returns = [r["growth_percent"] for r in results]
+
+std_dev = statistics.pstdev(cycle_returns) if len(cycle_returns) > 1 else 0.0
+
+response = {
+    "symbol": symbol.upper(),
+    "average_growth_percent": round(total_growth / valid, 2),
+    "std_dev_percent": round(std_dev, 2),
+    "results": results
+}
 
     # MF-only CAGR (correctly anchored)
     if asset_type == "mf":
