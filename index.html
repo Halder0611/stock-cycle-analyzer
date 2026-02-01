@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Stock & Mutual Fund Cycle Analyzer</title>
+  <title>Cycle Analyzer</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <!-- Tailwind -->
@@ -16,46 +16,41 @@
 
 <div class="max-w-7xl mx-auto p-6 space-y-6">
 
-  <!-- HEADER -->
   <header>
-    <h1 class="text-2xl font-semibold">Stock & Mutual Fund Cycle Analyzer</h1>
+    <h1 class="text-2xl font-semibold">Stock & MF Cycle Analyzer</h1>
     <p class="text-slate-400 text-sm">
-      Rolling cycle analysis • Risk • Consistency
+      Rolling returns • Risk • Hurdle-based Sharpe
     </p>
   </header>
 
   <!-- INPUTS -->
   <section class="bg-slate-900 border border-slate-800 rounded-xl p-6">
-    <h2 class="text-lg font-medium mb-4">Analysis Inputs</h2>
+    <h2 class="text-lg font-medium mb-4">Inputs</h2>
 
     <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
 
-      <div class="relative">
-        <label class="block text-sm text-slate-400 mb-1">Stock / Fund</label>
-        <input id="symbol"
-          placeholder="TCS, AAPL, ^NSEI"
-          oninput="suggest()"
-          class="w-full bg-slate-950 border border-slate-700 rounded-md px-3 py-2" />
-        <div id="suggestions"
-          class="absolute w-full bg-slate-900 border border-slate-700 rounded-md mt-1 z-10"></div>
+      <div>
+        <label class="text-sm text-slate-400">Symbol</label>
+        <input id="symbol" placeholder="TCS.NS, ^NSEI, AAPL"
+          class="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2" />
       </div>
 
       <div>
-        <label class="block text-sm text-slate-400 mb-1">End Date</label>
+        <label class="text-sm text-slate-400">End Date</label>
         <input id="end_date" type="date"
-          class="w-full bg-slate-950 border border-slate-700 rounded-md px-3 py-2" />
+          class="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2" />
       </div>
 
       <div>
-        <label class="block text-sm text-slate-400 mb-1">Cycle Duration</label>
+        <label class="text-sm text-slate-400">Cycle Duration</label>
         <input id="duration_value" type="number" value="1" min="1"
-          class="w-full bg-slate-950 border border-slate-700 rounded-md px-3 py-2" />
+          class="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2" />
       </div>
 
       <div>
-        <label class="block text-sm text-slate-400 mb-1">Duration Unit</label>
+        <label class="text-sm text-slate-400">Duration Unit</label>
         <select id="duration_unit"
-          class="w-full bg-slate-950 border border-slate-700 rounded-md px-3 py-2">
+          class="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2">
           <option value="years">Years</option>
           <option value="months">Months</option>
           <option value="days">Days</option>
@@ -63,26 +58,35 @@
       </div>
 
       <div>
-        <label class="block text-sm text-slate-400 mb-1">Number of Cycles</label>
+        <label class="text-sm text-slate-400">Number of Cycles</label>
         <input id="cycles" type="number" value="5" min="1"
-          class="w-full bg-slate-950 border border-slate-700 rounded-md px-3 py-2" />
+          class="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2" />
       </div>
 
       <div>
-        <label class="block text-sm text-slate-400 mb-1">Asset Type</label>
+        <label class="text-sm text-slate-400">Asset Type</label>
         <select id="asset_type"
-          class="w-full bg-slate-950 border border-slate-700 rounded-md px-3 py-2">
+          class="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2">
           <option value="stock">Stock</option>
           <option value="mf">Mutual Fund</option>
         </select>
       </div>
 
+      <div>
+        <label class="text-sm text-slate-400">
+          Risk-Free / Hurdle Rate (%)
+        </label>
+        <input id="risk_free_rate" type="number" step="0.1" value="6.0"
+          class="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2" />
+      </div>
+
       <div class="flex items-end">
         <button onclick="run()"
-          class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-md">
+          class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded">
           Analyze
         </button>
       </div>
+
     </div>
   </section>
 
@@ -92,68 +96,37 @@
     <div class="flex flex-wrap gap-6 text-sm">
       <div id="avg"></div>
       <div id="std"></div>
+      <div id="sharpe"></div>
       <div id="cagr"></div>
     </div>
   </section>
 
   <!-- TABLE -->
   <section class="bg-slate-900 border border-slate-800 rounded-xl p-6">
-    <h2 class="text-lg font-medium mb-4">Cycle Results</h2>
+    <h2 class="text-lg font-medium mb-4">Cycle Returns</h2>
 
-    <div class="overflow-x-auto">
-      <table class="w-full text-sm border border-slate-800 rounded-lg overflow-hidden">
-        <thead class="bg-slate-800 text-slate-400">
-          <tr>
-            <th class="px-3 py-2">Cycle</th>
-            <th class="px-3 py-2">From</th>
-            <th class="px-3 py-2">To</th>
-            <th class="px-3 py-2">Return %</th>
-          </tr>
-        </thead>
-        <tbody id="tableBody" class="divide-y divide-slate-800"></tbody>
-      </table>
-    </div>
+    <table class="w-full text-sm border border-slate-800">
+      <thead class="bg-slate-800 text-slate-400">
+        <tr>
+          <th class="px-3 py-2">Cycle</th>
+          <th class="px-3 py-2">From</th>
+          <th class="px-3 py-2">To</th>
+          <th class="px-3 py-2">Return %</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
   </section>
 
   <!-- GRAPH -->
   <section class="bg-slate-900 border border-slate-800 rounded-xl p-6">
-    <h2 class="text-lg font-medium mb-4">Price Trend (Cycle Boundaries)</h2>
+    <h2 class="text-lg font-medium mb-4">Price Trend</h2>
     <canvas id="priceChart" height="280"></canvas>
   </section>
 
 </div>
 
 <script>
-/* ---------- SEARCH (basic) ---------- */
-const STOCKS = [
-  { name: "NIFTY 50", symbol: "^NSEI" },
-  { name: "BANK NIFTY", symbol: "^NSEBANK" },
-  { name: "SENSEX", symbol: "^BSESN" },
-  { name: "Tata Consultancy Services", symbol: "TCS.NS" },
-  { name: "Reliance Industries", symbol: "RELIANCE.NS" },
-  { name: "Infosys", symbol: "INFY.NS" },
-  { name: "Apple", symbol: "AAPL" },
-  { name: "Microsoft", symbol: "MSFT" }
-];
-
-function suggest() {
-  const q = symbol.value.toLowerCase();
-  const box = document.getElementById("suggestions");
-  box.innerHTML = "";
-  if (!q) return;
-
-  STOCKS.filter(s => s.name.toLowerCase().includes(q))
-    .slice(0, 6)
-    .forEach(s => {
-      const d = document.createElement("div");
-      d.className = "px-3 py-2 hover:bg-slate-800 cursor-pointer text-sm";
-      d.textContent = `${s.name} (${s.symbol})`;
-      d.onclick = () => { symbol.value = s.symbol; box.innerHTML = ""; };
-      box.appendChild(d);
-    });
-}
-
-/* ---------- GRAPH + TABLE ---------- */
 let chart = null;
 
 async function run() {
@@ -163,30 +136,22 @@ async function run() {
     cycles: cycles.value,
     duration_value: duration_value.value,
     duration_unit: duration_unit.value,
-    asset_type: asset_type.value
+    asset_type: asset_type.value,
+    risk_free_rate: risk_free_rate.value
   });
 
-  const analyzeData = await (await fetch("/analyze?" + params)).json();
-  const priceData = await (await fetch("/price-series?" + params)).json();
-  if (!priceData.dates) return;
+  const analyze = await (await fetch("/analyze?" + params)).json();
+  const price = await (await fetch("/price-series?" + params)).json();
 
-  renderSummary(analyzeData);
-  renderTable(analyzeData);
-  drawChart(priceData);
-}
-
-function renderSummary(data) {
-  avg.textContent = `Average Cycle Return: ${data.average_growth_percent}%`;
-  std.textContent = `Std Dev (Cycle Returns): ${data.std_dev_percent}%`;
-  cagr.textContent = data.cagr_percent !== undefined
-    ? `CAGR: ${data.cagr_percent}%`
+  avg.textContent = `Average Return: ${analyze.average_growth_percent}%`;
+  std.textContent = `Std Dev: ${analyze.std_dev_percent}%`;
+  sharpe.textContent = `Sharpe (hurdle ${analyze.risk_free_rate_used}%): ${analyze.sharpe_ratio}`;
+  cagr.textContent = analyze.cagr_percent
+    ? `CAGR: ${analyze.cagr_percent}%`
     : "";
-}
 
-function renderTable(data) {
   tableBody.innerHTML = "";
-
-  data.results.forEach(r => {
+  analyze.results.forEach(r => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td class="px-3 py-2 text-center">${r.cycle}</td>
@@ -194,52 +159,29 @@ function renderTable(data) {
       <td class="px-3 py-2 text-center">${r.to}</td>
       <td class="px-3 py-2 text-center ${r.growth_percent >= 0 ? "text-green-400" : "text-red-400"}">
         ${r.growth_percent}
-      </td>
-    `;
+      </td>`;
     tableBody.appendChild(tr);
   });
+
+  drawChart(price);
 }
 
 function drawChart(data) {
   const ctx = priceChart.getContext("2d");
   if (chart) chart.destroy();
 
-  const index = {};
-  data.dates.forEach((d, i) => index[d] = i);
-
-  const points = data.cycles
-    .map(c => index[c.end] !== undefined
-      ? { x: index[c.end], y: data.prices[index[c.end]] }
-      : null)
-    .filter(Boolean);
-
   chart = new Chart(ctx, {
     type: "line",
     data: {
       labels: data.dates,
-      datasets: [
-        {
-          label: "Price",
-          data: data.prices,
-          borderColor: "#60a5fa",
-          borderWidth: 2,
-          pointRadius: 0,
-          tension: 0.25
-        },
-        {
-          label: "Cycle Boundary",
-          data: points,
-          showLine: false,
-          pointRadius: 6,
-          backgroundColor: "#22c55e"
-        }
-      ]
-    },
-    options: {
-      scales: {
-        x: { ticks: { maxTicksLimit: 8 } },
-        y: { ticks: { callback: v => "₹" + v } }
-      }
+      datasets: [{
+        label: "Price",
+        data: data.prices,
+        borderColor: "#60a5fa",
+        borderWidth: 2,
+        pointRadius: 0,
+        tension: 0.25
+      }]
     }
   });
 }
