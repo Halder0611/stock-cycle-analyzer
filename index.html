@@ -43,8 +43,14 @@
 
       <div>
         <label class="text-xs font-medium text-slate-400 block mb-2">Symbol</label>
-        <input id="symbol" placeholder="TCS.NS, ^NSEI, AAPL" value="^NSEI"
-          class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-100 placeholder-slate-500 input-field" />
+        <div class="relative">
+          <input id="symbol" placeholder="TCS.NS, ^NSEI, AAPL" value="^NSEI"
+            class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-100 placeholder-slate-500 input-field" 
+            autocomplete="off"
+            oninput="searchSymbols(this.value)" />
+          <div id="symbolSuggestions" class="absolute top-full left-0 right-0 bg-slate-800 border border-slate-700 rounded mt-1 max-h-48 overflow-y-auto shadow-lg hidden z-10">
+          </div>
+        </div>
       </div>
 
       <div>
@@ -158,6 +164,54 @@
 <script>
 let chart = null;
 let barChart = null;
+let searchTimeout = null;
+
+function searchSymbols(query) {
+  const suggestionsDiv = document.getElementById('symbolSuggestions');
+  
+  if (!query || query.length < 1) {
+    suggestionsDiv.classList.add('hidden');
+    return;
+  }
+
+  clearTimeout(searchTimeout);
+  
+  searchTimeout = setTimeout(async () => {
+    try {
+      const response = await fetch(`/search-symbols?q=${encodeURIComponent(query)}`);
+      const data = await response.json();
+      
+      if (data.results && data.results.length > 0) {
+        suggestionsDiv.innerHTML = data.results
+          .map(r => `
+            <div class="px-3 py-2 hover:bg-slate-700 cursor-pointer text-sm text-slate-100 border-b border-slate-700" 
+                 onclick="selectSymbol('${r.symbol}')">
+              <span class="font-medium">${r.symbol}</span>
+              <span class="text-slate-400 ml-2">${r.name}</span>
+            </div>
+          `)
+          .join('');
+        suggestionsDiv.classList.remove('hidden');
+      } else {
+        suggestionsDiv.classList.add('hidden');
+      }
+    } catch (e) {
+      console.error('Search error:', e);
+    }
+  }, 300);
+}
+
+function selectSymbol(symbol) {
+  document.getElementById('symbol').value = symbol;
+  document.getElementById('symbolSuggestions').classList.add('hidden');
+}
+
+// Close suggestions when clicking outside
+document.addEventListener('click', (e) => {
+  if (e.target.id !== 'symbol') {
+    document.getElementById('symbolSuggestions').classList.add('hidden');
+  }
+});
 
 function formatValue(label, value, isPercent = false) {
   if (value === null || value === undefined || isNaN(value)) return `${label}: N/A`;
