@@ -5,7 +5,7 @@
   <title>Stock & Mutual Fund Cycle Analyzer</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- Tailwind CDN -->
+  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
 
   <!-- Chart.js -->
@@ -20,7 +20,7 @@
   <header>
     <h1 class="text-2xl font-semibold">Stock & Mutual Fund Cycle Analyzer</h1>
     <p class="text-slate-400 text-sm">
-      Analyze rolling cycles, returns, and long-term growth
+      Rolling cycle analysis • Risk • Consistency
     </p>
   </header>
 
@@ -30,32 +30,28 @@
 
     <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
 
-      <!-- SYMBOL -->
-      <div>
+      <div class="relative">
         <label class="block text-sm text-slate-400 mb-1">Stock / Fund</label>
         <input id="symbol"
-          placeholder="TCS, AAPL, VFIAX"
+          placeholder="TCS, AAPL, ^NSEI"
           oninput="suggest()"
-          class="w-full bg-slate-950 border border-slate-700 rounded-md px-3 py-2 focus:outline-none focus:ring focus:ring-blue-600" />
+          class="w-full bg-slate-950 border border-slate-700 rounded-md px-3 py-2" />
         <div id="suggestions"
-          class="absolute bg-slate-900 border border-slate-700 rounded-md mt-1 z-10"></div>
+          class="absolute w-full bg-slate-900 border border-slate-700 rounded-md mt-1 z-10"></div>
       </div>
 
-      <!-- END DATE -->
       <div>
-        <label class="block text-sm text-slate-400 mb-1">Analysis End Date</label>
+        <label class="block text-sm text-slate-400 mb-1">End Date</label>
         <input id="end_date" type="date"
           class="w-full bg-slate-950 border border-slate-700 rounded-md px-3 py-2" />
       </div>
 
-      <!-- DURATION VALUE -->
       <div>
         <label class="block text-sm text-slate-400 mb-1">Cycle Duration</label>
         <input id="duration_value" type="number" value="1" min="1"
           class="w-full bg-slate-950 border border-slate-700 rounded-md px-3 py-2" />
       </div>
 
-      <!-- DURATION UNIT -->
       <div>
         <label class="block text-sm text-slate-400 mb-1">Duration Unit</label>
         <select id="duration_unit"
@@ -66,14 +62,12 @@
         </select>
       </div>
 
-      <!-- CYCLES -->
       <div>
         <label class="block text-sm text-slate-400 mb-1">Number of Cycles</label>
         <input id="cycles" type="number" value="5" min="1"
           class="w-full bg-slate-950 border border-slate-700 rounded-md px-3 py-2" />
       </div>
 
-      <!-- ASSET TYPE -->
       <div>
         <label class="block text-sm text-slate-400 mb-1">Asset Type</label>
         <select id="asset_type"
@@ -83,7 +77,6 @@
         </select>
       </div>
 
-      <!-- BUTTON -->
       <div class="flex items-end">
         <button onclick="run()"
           class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-md">
@@ -93,14 +86,19 @@
     </div>
   </section>
 
-  <!-- SUMMARY + TABLE -->
+  <!-- SUMMARY -->
+  <section class="bg-slate-900 border border-slate-800 rounded-xl p-6">
+    <h2 class="text-lg font-medium mb-4">Summary</h2>
+    <div class="flex flex-wrap gap-6 text-sm">
+      <div id="avg"></div>
+      <div id="std"></div>
+      <div id="cagr"></div>
+    </div>
+  </section>
+
+  <!-- TABLE -->
   <section class="bg-slate-900 border border-slate-800 rounded-xl p-6">
     <h2 class="text-lg font-medium mb-4">Cycle Results</h2>
-
-    <div class="flex flex-wrap gap-6 text-sm mb-4">
-      <div id="avg" class="text-slate-300"></div>
-      <div id="cagr" class="text-slate-300"></div>
-    </div>
 
     <div class="overflow-x-auto">
       <table class="w-full text-sm border border-slate-800 rounded-lg overflow-hidden">
@@ -126,12 +124,14 @@
 </div>
 
 <script>
-/* ---------- SEARCH ---------- */
+/* ---------- SEARCH (basic) ---------- */
 const STOCKS = [
+  { name: "NIFTY 50", symbol: "^NSEI" },
+  { name: "BANK NIFTY", symbol: "^NSEBANK" },
+  { name: "SENSEX", symbol: "^BSESN" },
   { name: "Tata Consultancy Services", symbol: "TCS.NS" },
   { name: "Reliance Industries", symbol: "RELIANCE.NS" },
   { name: "Infosys", symbol: "INFY.NS" },
-  { name: "HDFC Bank", symbol: "HDFCBANK.NS" },
   { name: "Apple", symbol: "AAPL" },
   { name: "Microsoft", symbol: "MSFT" }
 ];
@@ -143,7 +143,7 @@ function suggest() {
   if (!q) return;
 
   STOCKS.filter(s => s.name.toLowerCase().includes(q))
-    .slice(0, 5)
+    .slice(0, 6)
     .forEach(s => {
       const d = document.createElement("div");
       d.className = "px-3 py-2 hover:bg-slate-800 cursor-pointer text-sm";
@@ -170,16 +170,21 @@ async function run() {
   const priceData = await (await fetch("/price-series?" + params)).json();
   if (!priceData.dates) return;
 
+  renderSummary(analyzeData);
   renderTable(analyzeData);
   drawChart(priceData);
 }
 
+function renderSummary(data) {
+  avg.textContent = `Average Cycle Return: ${data.average_growth_percent}%`;
+  std.textContent = `Std Dev (Cycle Returns): ${data.std_dev_percent}%`;
+  cagr.textContent = data.cagr_percent !== undefined
+    ? `CAGR: ${data.cagr_percent}%`
+    : "";
+}
+
 function renderTable(data) {
   tableBody.innerHTML = "";
-
-  avg.textContent = `Average Cycle Return: ${data.average_growth_percent}%`;
-  cagr.textContent = data.cagr_percent !== undefined
-    ? `CAGR: ${data.cagr_percent}%` : "";
 
   data.results.forEach(r => {
     const tr = document.createElement("tr");
