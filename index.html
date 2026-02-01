@@ -335,6 +335,10 @@ function drawChart(data) {
     })
     .filter(Boolean);
 
+  // Create connected line data for boundaries
+  const boundaryLineData = boundaryPoints.map(p => p.y);
+  const boundaryLineLabels = boundaryPoints.map(p => p.x);
+
   // Plugin to draw vertical line on hover
   const verticalLinePlugin = {
     id: 'verticalLine',
@@ -372,14 +376,19 @@ function drawChart(data) {
           tension: 0.3
         },
         {
-          label: 'Cycle Boundary',
+          label: 'Cycle Boundaries',
           data: boundaryPoints,
-          showLine: false,
-          pointRadius: 5,
-          pointHoverRadius: 7,
+          borderColor: '#10b981',
           backgroundColor: '#10b981',
-          borderColor: '#059669',
-          borderWidth: 2
+          borderWidth: 2,
+          pointRadius: 6,
+          pointHoverRadius: 8,
+          pointBackgroundColor: '#10b981',
+          pointBorderColor: '#059669',
+          pointBorderWidth: 2,
+          showLine: true,
+          tension: 0.2,
+          fill: false
         }
       ]
     },
