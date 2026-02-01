@@ -5,126 +5,128 @@
   <title>Stock & Mutual Fund Cycle Analyzer</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-  <style>
-    body {
-      margin: 0;
-      background: #020617;
-      color: #e5e7eb;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-    }
-
-    .container {
-      max-width: 1100px;
-      margin: auto;
-      padding: 24px;
-    }
-
-    h1 {
-      margin-bottom: 16px;
-    }
-
-    .controls {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 12px;
-    }
-
-    input, select, button {
-      background: #020617;
-      color: #e5e7eb;
-      border: 1px solid #1f2937;
-      padding: 10px;
-      border-radius: 6px;
-      font-size: 14px;
-    }
-
-    button {
-      background: #2563eb;
-      border: none;
-      cursor: pointer;
-      font-weight: 600;
-    }
-
-    button:hover {
-      background: #1d4ed8;
-    }
-
-    .search-box {
-      position: relative;
-    }
-
-    .suggestions {
-      position: absolute;
-      top: 100%;
-      left: 0;
-      right: 0;
-      background: #020617;
-      border: 1px solid #1f2937;
-      z-index: 10;
-    }
-
-    .suggestions div {
-      padding: 8px;
-      cursor: pointer;
-    }
-
-    .suggestions div:hover {
-      background: #1f2937;
-    }
-
-    canvas {
-      margin-top: 24px;
-    }
-
-    pre {
-      margin-top: 24px;
-      background: #020617;
-      border: 1px solid #1f2937;
-      padding: 12px;
-      font-size: 13px;
-      overflow-x: auto;
-    }
-  </style>
 </head>
 
-<body>
-<div class="container">
-  <h1>Stock & Mutual Fund Cycle Analyzer</h1>
+<body class="bg-slate-950 text-slate-200 min-h-screen">
 
-  <div class="controls">
-    <div class="search-box">
-      <input id="symbol" placeholder="Search stock (TCS, Apple)" oninput="suggest()" />
-      <div id="suggestions" class="suggestions"></div>
+<div class="max-w-7xl mx-auto p-6 space-y-6">
+
+  <!-- HEADER -->
+  <header>
+    <h1 class="text-2xl font-semibold">Stock & Mutual Fund Cycle Analyzer</h1>
+    <p class="text-slate-400 text-sm">
+      Analyze rolling cycles, returns, and long-term growth
+    </p>
+  </header>
+
+  <!-- INPUTS -->
+  <section class="bg-slate-900 border border-slate-800 rounded-xl p-6">
+    <h2 class="text-lg font-medium mb-4">Analysis Inputs</h2>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+
+      <!-- SYMBOL -->
+      <div>
+        <label class="block text-sm text-slate-400 mb-1">Stock / Fund</label>
+        <input id="symbol"
+          placeholder="TCS, AAPL, VFIAX"
+          oninput="suggest()"
+          class="w-full bg-slate-950 border border-slate-700 rounded-md px-3 py-2 focus:outline-none focus:ring focus:ring-blue-600" />
+        <div id="suggestions"
+          class="absolute bg-slate-900 border border-slate-700 rounded-md mt-1 z-10"></div>
+      </div>
+
+      <!-- END DATE -->
+      <div>
+        <label class="block text-sm text-slate-400 mb-1">Analysis End Date</label>
+        <input id="end_date" type="date"
+          class="w-full bg-slate-950 border border-slate-700 rounded-md px-3 py-2" />
+      </div>
+
+      <!-- DURATION VALUE -->
+      <div>
+        <label class="block text-sm text-slate-400 mb-1">Cycle Duration</label>
+        <input id="duration_value" type="number" value="1" min="1"
+          class="w-full bg-slate-950 border border-slate-700 rounded-md px-3 py-2" />
+      </div>
+
+      <!-- DURATION UNIT -->
+      <div>
+        <label class="block text-sm text-slate-400 mb-1">Duration Unit</label>
+        <select id="duration_unit"
+          class="w-full bg-slate-950 border border-slate-700 rounded-md px-3 py-2">
+          <option value="years">Years</option>
+          <option value="months">Months</option>
+          <option value="days">Days</option>
+        </select>
+      </div>
+
+      <!-- CYCLES -->
+      <div>
+        <label class="block text-sm text-slate-400 mb-1">Number of Cycles</label>
+        <input id="cycles" type="number" value="5" min="1"
+          class="w-full bg-slate-950 border border-slate-700 rounded-md px-3 py-2" />
+      </div>
+
+      <!-- ASSET TYPE -->
+      <div>
+        <label class="block text-sm text-slate-400 mb-1">Asset Type</label>
+        <select id="asset_type"
+          class="w-full bg-slate-950 border border-slate-700 rounded-md px-3 py-2">
+          <option value="stock">Stock</option>
+          <option value="mf">Mutual Fund</option>
+        </select>
+      </div>
+
+      <!-- BUTTON -->
+      <div class="flex items-end">
+        <button onclick="run()"
+          class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-md">
+          Analyze
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- SUMMARY + TABLE -->
+  <section class="bg-slate-900 border border-slate-800 rounded-xl p-6">
+    <h2 class="text-lg font-medium mb-4">Cycle Results</h2>
+
+    <div class="flex flex-wrap gap-6 text-sm mb-4">
+      <div id="avg" class="text-slate-300"></div>
+      <div id="cagr" class="text-slate-300"></div>
     </div>
 
-    <input id="end_date" type="date" />
-    <input id="duration_value" type="number" value="1" min="1" />
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm border border-slate-800 rounded-lg overflow-hidden">
+        <thead class="bg-slate-800 text-slate-400">
+          <tr>
+            <th class="px-3 py-2">Cycle</th>
+            <th class="px-3 py-2">From</th>
+            <th class="px-3 py-2">To</th>
+            <th class="px-3 py-2">Return %</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody" class="divide-y divide-slate-800"></tbody>
+      </table>
+    </div>
+  </section>
 
-    <select id="duration_unit">
-      <option value="years">Years</option>
-      <option value="months">Months</option>
-      <option value="days">Days</option>
-    </select>
+  <!-- GRAPH -->
+  <section class="bg-slate-900 border border-slate-800 rounded-xl p-6">
+    <h2 class="text-lg font-medium mb-4">Price Trend (Cycle Boundaries)</h2>
+    <canvas id="priceChart" height="280"></canvas>
+  </section>
 
-    <input id="cycles" type="number" value="5" min="1" />
-
-    <select id="asset_type">
-      <option value="stock">Stock</option>
-      <option value="mf">Mutual Fund</option>
-    </select>
-
-    <button onclick="run()">Analyze</button>
-  </div>
-
-  <canvas id="priceChart" height="120"></canvas>
-  <pre id="output"></pre>
 </div>
 
 <script>
-/* ---------- SEARCH (frontend-only) ---------- */
-
+/* ---------- SEARCH ---------- */
 const STOCKS = [
   { name: "Tata Consultancy Services", symbol: "TCS.NS" },
   { name: "Reliance Industries", symbol: "RELIANCE.NS" },
@@ -143,24 +145,18 @@ function suggest() {
   STOCKS.filter(s => s.name.toLowerCase().includes(q))
     .slice(0, 5)
     .forEach(s => {
-      const div = document.createElement("div");
-      div.textContent = `${s.name} (${s.symbol})`;
-      div.onclick = () => {
-        symbol.value = s.symbol;
-        box.innerHTML = "";
-      };
-      box.appendChild(div);
+      const d = document.createElement("div");
+      d.className = "px-3 py-2 hover:bg-slate-800 cursor-pointer text-sm";
+      d.textContent = `${s.name} (${s.symbol})`;
+      d.onclick = () => { symbol.value = s.symbol; box.innerHTML = ""; };
+      box.appendChild(d);
     });
 }
 
-/* ---------- GRAPH ---------- */
-
+/* ---------- GRAPH + TABLE ---------- */
 let chart = null;
 
 async function run() {
-  const output = document.getElementById("output");
-  output.textContent = "Loading...";
-
   const params = new URLSearchParams({
     symbol: symbol.value.trim(),
     end_date: end_date.value,
@@ -170,49 +166,47 @@ async function run() {
     asset_type: asset_type.value
   });
 
-  try {
-    const analyzeRes = await fetch("/analyze?" + params);
-    const analyzeData = await analyzeRes.json();
+  const analyzeData = await (await fetch("/analyze?" + params)).json();
+  const priceData = await (await fetch("/price-series?" + params)).json();
+  if (!priceData.dates) return;
 
-    const priceRes = await fetch("/price-series?" + params);
-    const priceData = await priceRes.json();
+  renderTable(analyzeData);
+  drawChart(priceData);
+}
 
-    if (!priceData || !priceData.dates || !priceData.prices) {
-      output.textContent =
-        "Price-series error:\n" + JSON.stringify(priceData, null, 2);
-      return;
-    }
+function renderTable(data) {
+  tableBody.innerHTML = "";
 
-    output.textContent = JSON.stringify(analyzeData, null, 2);
-    drawChart(priceData);
+  avg.textContent = `Average Cycle Return: ${data.average_growth_percent}%`;
+  cagr.textContent = data.cagr_percent !== undefined
+    ? `CAGR: ${data.cagr_percent}%` : "";
 
-  } catch (e) {
-    output.textContent = "ERROR: " + e;
-  }
+  data.results.forEach(r => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td class="px-3 py-2 text-center">${r.cycle}</td>
+      <td class="px-3 py-2 text-center">${r.from}</td>
+      <td class="px-3 py-2 text-center">${r.to}</td>
+      <td class="px-3 py-2 text-center ${r.growth_percent >= 0 ? "text-green-400" : "text-red-400"}">
+        ${r.growth_percent}
+      </td>
+    `;
+    tableBody.appendChild(tr);
+  });
 }
 
 function drawChart(data) {
-  const ctx = document.getElementById("priceChart").getContext("2d");
+  const ctx = priceChart.getContext("2d");
   if (chart) chart.destroy();
 
-  // map date -> index
-  const dateIndex = {};
-  data.dates.forEach((d, i) => dateIndex[d] = i);
+  const index = {};
+  data.dates.forEach((d, i) => index[d] = i);
 
-  // ONE marker per cycle (cycle END)
-  const cyclePoints = [];
-
-  data.cycles.forEach(c => {
-    const idx = dateIndex[c.end];
-    if (idx !== undefined) {
-      cyclePoints.push({
-        x: idx,
-        y: data.prices[idx],
-        cycle: c.cycle,
-        date: c.end
-      });
-    }
-  });
+  const points = data.cycles
+    .map(c => index[c.end] !== undefined
+      ? { x: index[c.end], y: data.prices[index[c.end]] }
+      : null)
+    .filter(Boolean);
 
   chart = new Chart(ctx, {
     type: "line",
@@ -222,13 +216,14 @@ function drawChart(data) {
         {
           label: "Price",
           data: data.prices,
+          borderColor: "#60a5fa",
           borderWidth: 2,
-          tension: 0.25,
-          pointRadius: 0
+          pointRadius: 0,
+          tension: 0.25
         },
         {
           label: "Cycle Boundary",
-          data: cyclePoints,
+          data: points,
           showLine: false,
           pointRadius: 6,
           backgroundColor: "#22c55e"
@@ -236,21 +231,9 @@ function drawChart(data) {
       ]
     },
     options: {
-      responsive: true,
-      plugins: {
-        tooltip: {
-          callbacks: {
-            label: ctx => {
-              if (ctx.raw?.cycle) {
-                return `Cycle ${ctx.raw.cycle} (${ctx.raw.date}) • ${ctx.raw.y.toFixed(2)}`;
-              }
-              return ctx.raw.toFixed(2);
-            }
-          }
-        }
-      },
       scales: {
-        x: { ticks: { maxTicksLimit: 10 } }
+        x: { ticks: { maxTicksLimit: 8 } },
+        y: { ticks: { callback: v => "₹" + v } }
       }
     }
   });
