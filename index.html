@@ -335,6 +335,28 @@ function drawChart(data) {
     })
     .filter(Boolean);
 
+  // Plugin to draw vertical line on hover
+  const verticalLinePlugin = {
+    id: 'verticalLine',
+    afterDatasetsDraw(chart) {
+      const { ctx, scales, tooltip } = chart;
+      if (tooltip._active && tooltip._active.length > 0) {
+        const x = tooltip._active[0].element.x;
+        const topY = scales.y.top;
+        const bottomY = scales.y.bottom;
+
+        ctx.strokeStyle = '#3b82f6';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(x, topY);
+        ctx.lineTo(x, bottomY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    }
+  };
+
   chart = new Chart(ctx, {
     type: 'line',
     data: {
@@ -364,9 +386,37 @@ function drawChart(data) {
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      interaction: {
+        mode: 'index',
+        intersect: false
+      },
       plugins: {
+        verticalLine: {},
         legend: {
           labels: { boxWidth: 12, font: { size: 12 }, color: '#94a3b8' }
+        },
+        tooltip: {
+          enabled: true,
+          mode: 'index',
+          intersect: false,
+          backgroundColor: '#1a1f2e',
+          borderColor: '#3b82f6',
+          borderWidth: 1,
+          titleColor: '#e2e8f0',
+          bodyColor: '#cbd5e1',
+          padding: 8,
+          displayColors: false,
+          callbacks: {
+            title: function(context) {
+              return context[0]?.label || '';
+            },
+            label: function(context) {
+              if (context.datasetIndex === 0) {
+                return '₹ ' + parseFloat(context.parsed.y).toLocaleString('en-IN', {maximumFractionDigits: 2});
+              }
+              return context.dataset.label;
+            }
+          }
         }
       },
       scales: {
@@ -383,7 +433,8 @@ function drawChart(data) {
           grid: { color: 'rgba(100, 116, 139, 0.1)' }
         }
       }
-    }
+    },
+    plugins: [verticalLinePlugin]
   });
 }
 
